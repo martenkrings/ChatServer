@@ -50,7 +50,6 @@ public class Server {
                 while (true) {
                     out =
                             new PrintWriter(socket.getOutputStream(), true);
-
                     BufferedReader in = new BufferedReader(
                             new InputStreamReader(socket.getInputStream()));
 
@@ -59,7 +58,6 @@ public class Server {
                     if (inputLine.equals("Close()")){
                         out.close();
                     }
-
                     broadcastMessage(inputLine);
                 }
 
@@ -67,9 +65,7 @@ public class Server {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-
         }
-
 
         /**
          * Send a message to the client
