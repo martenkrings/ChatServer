@@ -38,7 +38,7 @@ public class Main {
     private class ClientThread extends Thread {
         private Socket socket;
 
-        public ClientThread(Socket socket) {
+        private ClientThread(Socket socket) {
             this.socket = socket;
         }
 
@@ -59,7 +59,7 @@ public class Main {
          * Send a message to the client
          * @param message the message send
          */
-        public void sendMessage(String message){
+        private void sendMessage(String message){
             try {
                 PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
                 out.println(message);
