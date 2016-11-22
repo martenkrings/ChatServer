@@ -9,14 +9,16 @@ import java.util.ArrayList;
 /**
  * Created by Marten on 11/16/2016.
  */
-public class Main {
-    private static final int SERVER_PORT = 8080;
+public class Server {
+    private static final int SERVER_PORT = 3000;
     private static ArrayList<ClientThread> loggedInClients = new ArrayList<>();
 
     private void run() {
         try {
             //make the server socket
             ServerSocket serverSocket = new ServerSocket(SERVER_PORT);
+
+            System.out.println("Server online!");
 
             while (true) {
                 ClientThread clientThread = new ClientThread(serverSocket.accept());
@@ -37,6 +39,7 @@ public class Main {
      */
     private class ClientThread extends Thread {
         private Socket socket;
+        PrintWriter out;
 
         public ClientThread(Socket socket) {
             this.socket = socket;
@@ -44,44 +47,54 @@ public class Main {
 
         public void run() {
             try {
-                BufferedReader in = new BufferedReader(
-                        new InputStreamReader(socket.getInputStream()));
+                while (true) {
+                    out =
+                            new PrintWriter(socket.getOutputStream(), true);
 
-                String inputLine = in.readLine();
-                broadcastMessage(inputLine);
+                    BufferedReader in = new BufferedReader(
+                            new InputStreamReader(socket.getInputStream()));
+
+                    String inputLine = in.readLine();
+
+                    if (inputLine.equals("Close()")){
+                        out.close();
+                    }
+
+                    broadcastMessage(inputLine);
+                }
+
 
             } catch (IOException e) {
                 e.printStackTrace();
             }
+
         }
+
 
         /**
          * Send a message to the client
+         *
          * @param message the message send
          */
-        public void sendMessage(String message){
-            try {
-                PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-                out.println(message);
-                out.flush();
-                out.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+        public void sendMessage(String message) {
+            out.println(message);
+            out.flush();
         }
     }
 
     /**
      * Send a message to all logged in clients
+     *
      * @param message the message send
      */
-    private void broadcastMessage(String message){
-        for (ClientThread clientThread: loggedInClients){
+    private void broadcastMessage(String message) {
+        System.out.println("BROADCAST: [" + message + "]");
+        for (ClientThread clientThread : loggedInClients) {
             clientThread.sendMessage(message);
         }
     }
 
     public static void main(String[] args) {
-        new Main().run();
+        new Server().run();
     }
 }
