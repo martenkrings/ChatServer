@@ -39,6 +39,7 @@ public class Server {
      */
     private class ClientThread extends Thread {
         private Socket socket;
+        private String nickname = "Anonymous";
         PrintWriter out;
 
         public ClientThread(Socket socket) {
@@ -48,17 +49,44 @@ public class Server {
         public void run() {
             try {
                 while (true) {
+                    //make the in and out writers
                     out =
                             new PrintWriter(socket.getOutputStream(), true);
                     BufferedReader in = new BufferedReader(
                             new InputStreamReader(socket.getInputStream()));
 
+                    //get the inputLine
                     String inputLine = in.readLine();
 
-                    if (inputLine.equals("Close()")){
-                        out.close();
+                    //filter the command out
+                    String command = inputLine.substring(0, inputLine.indexOf(" "));
+                    String line = inputLine.substring(inputLine.indexOf(" ") + 1);
+                    switch (command){
+                        case "/broadcast":
+                            broadcastMessage("[BROADCAST][" + nickname + "] " + line);
+                            break;
+                        //change nickname
+                        case "/newNickname":
+                            nickname = line;
+                            out.println("Nickname changed!");
+                            out.flush();
+                            break;
+                        case "/pm":
+                            System.out.println("x");
+                            String receiver = line.substring(0, line.indexOf(" "));
+                            String message = line.substring(line.indexOf(" ") + 1);
+                            System.out.println(receiver + message);
+
+                            if (receiver.equals("Anonymous")){
+                                out.println("Can not send a message to Anonymous");
+                                out.flush();
+                            }else {
+                                out.println("[You to " + receiver + "]" + message);
+                                out.flush();
+                                //send the message
+                                sendMessageTo(receiver, nickname, message);
+                            }
                     }
-                    broadcastMessage(inputLine);
                 }
 
 
@@ -76,6 +104,11 @@ public class Server {
             out.println(message);
             out.flush();
         }
+
+        public String getNickname() {
+            return nickname;
+        }
+
     }
 
     /**
@@ -87,6 +120,34 @@ public class Server {
         System.out.println("BROADCAST: [" + message + "]");
         for (ClientThread clientThread : loggedInClients) {
             clientThread.sendMessage(message);
+        }
+    }
+
+    /**
+     * Method that checks if a nickname is unique
+     * @param name the name that gets checked
+     * @return true if unique else false
+     */
+    private boolean nameUnique(String name){
+        for (ClientThread clientThread: loggedInClients){
+            if (clientThread.getNickname().equals(name)){
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Message that sends a message to a specifick user
+     * @param receiver nickname of the person the message should be sent
+     * @param sender nickname of the sender
+     * @param message the message to send
+     */
+    private void sendMessageTo(String receiver, String sender, String message){
+        for (ClientThread clientThread: loggedInClients){
+            if (clientThread.getNickname().equals(receiver)){
+                clientThread.sendMessage("[Message from " + sender + "]" + message);
+            }
         }
     }
 

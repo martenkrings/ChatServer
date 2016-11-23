@@ -11,7 +11,7 @@ public class Client {
     private Socket socket;
     private InputStream inputStream;
 
-    public void run(){
+    public void run() {
         try {
             //Maak verbinding met de server
             socket = new Socket(SERVER_ADRESS, SERVER_PORT);
@@ -24,17 +24,49 @@ public class Client {
             InputThread inputThread = new InputThread();
             inputThread.start();
 
-            while(true) {
+            while (true) {
                 //get the outputstream
                 OutputStream out = socket.getOutputStream();
                 PrintWriter writer = new PrintWriter(out);
 
                 //Ask for input
                 Scanner scanner = new Scanner(System.in);
-                System.out.println("Send message: ");
+                String inputLine = scanner.nextLine();
 
-                //write the message to the server
-                writer.println(scanner.nextLine());
+                //default value
+                String command = "-1";
+                String line = "";
+                if (!inputLine.equals("")) {
+                    if (inputLine.charAt(0) == '/') {
+                        if (inputLine.indexOf(" ") >= 0) {
+                            command = inputLine.substring(0, inputLine.indexOf(" "));
+                            line = inputLine.substring(inputLine.indexOf(" ") + 1);
+                        }
+                    } else {
+                        command = "";
+                        line = inputLine;
+                    }
+                }
+
+                switch (command) {
+                    case "/newNickname":
+                        writer.println(command + " " + line);
+                        break;
+                    case "":
+                        writer.println("/broadcast " + line);
+                        break;
+                    case "/pm":
+                        writer.println("/pm " + line);
+                        break;
+                    case "/logout":
+                        System.out.println("Logging out!");
+                        //TODO
+                        break;
+                    case "-1":
+                        System.out.println("Please give a valid command/input");
+
+                }
+                writer.flush();
             }
 
         } catch (IOException e) {
@@ -55,7 +87,7 @@ public class Client {
                     String nextLine = reader.readLine();
 
                     //print the line
-                    System.out.println("Message from server: " + nextLine);
+                    System.out.println(nextLine);
 
                 } catch (IOException e) {
                     e.printStackTrace();
