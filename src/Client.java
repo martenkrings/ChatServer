@@ -9,7 +9,10 @@ public class Client {
     private static final int SERVER_PORT = 3000;
     private static final String SERVER_ADRESS = "localhost";
     private Socket socket;
+    private InputThread inputThread;
     private InputStream inputStream;
+
+    boolean loggedIn = true;
 
     public void run() {
         try {
@@ -21,10 +24,10 @@ public class Client {
             inputStream = socket.getInputStream();
 
             //start waiting for input
-            InputThread inputThread = new InputThread();
+            inputThread = new InputThread();
             inputThread.start();
 
-            while (true) {
+            while (loggedIn) {
                 //get the outputstream
                 OutputStream out = socket.getOutputStream();
                 PrintWriter writer = new PrintWriter(out);
@@ -41,6 +44,8 @@ public class Client {
                         if (inputLine.indexOf(" ") >= 0) {
                             command = inputLine.substring(0, inputLine.indexOf(" "));
                             line = inputLine.substring(inputLine.indexOf(" ") + 1);
+                        } else {
+                            command = inputLine;
                         }
                     } else {
                         command = "";
@@ -56,13 +61,18 @@ public class Client {
                         writer.println("/broadcast " + line);
                         break;
                     case "/pm":
-                        writer.println("/pm " + line);
+                        //check if a message has been givven
+                        if (line.indexOf("") >= 0){
+                            System.out.println("Please provide a message");
+                        }else {
+                            writer.println("/pm " + line);
+                        }
                         break;
                     case "/logout":
-                        System.out.println("Logging out!");
-                        //TODO
+                        writer.println("/logout");
+                        loggedIn = false;
                         break;
-                    case "-1":
+                    default:
                         System.out.println("Please give a valid command/input");
 
                 }
@@ -77,7 +87,7 @@ public class Client {
     private class InputThread extends Thread {
 
         public void run() {
-            while (true) {
+            while (loggedIn) {
                 try {
                     // Blokkeer de thread tot er een volledige regel binnenkomt
                     BufferedReader reader = new BufferedReader(

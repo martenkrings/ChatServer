@@ -48,7 +48,8 @@ public class Server {
 
         public void run() {
             try {
-                while (true) {
+                boolean loggedin = true;
+                while (loggedin) {
                     //make the in and out writers
                     out =
                             new PrintWriter(socket.getOutputStream(), true);
@@ -58,10 +59,17 @@ public class Server {
                     //get the inputLine
                     String inputLine = in.readLine();
 
+                    String command;
+                    String line = "";
+
                     //filter the command out
-                    String command = inputLine.substring(0, inputLine.indexOf(" "));
-                    String line = inputLine.substring(inputLine.indexOf(" ") + 1);
-                    switch (command){
+                    if (inputLine.indexOf(" ") >= 0) {
+                        command = inputLine.substring(0, inputLine.indexOf(" "));
+                        line = inputLine.substring(inputLine.indexOf(" ") + 1);
+                    } else {
+                        command = inputLine;
+                    }
+                    switch (command) {
                         case "/broadcast":
                             broadcastMessage("[BROADCAST][" + nickname + "] " + line);
                             break;
@@ -69,25 +77,40 @@ public class Server {
                         case "/newNickname":
                             nickname = line;
                             out.println("Nickname changed!");
-                            out.flush();
                             break;
                         case "/pm":
-                            System.out.println("x");
                             String receiver = line.substring(0, line.indexOf(" "));
                             String message = line.substring(line.indexOf(" ") + 1);
                             System.out.println(receiver + message);
 
-                            if (receiver.equals("Anonymous")){
-                                out.println("Can not send a message to Anonymous");
-                                out.flush();
-                            }else {
-                                out.println("[You to " + receiver + "]" + message);
-                                out.flush();
-                                //send the message
-                                sendMessageTo(receiver, nickname, message);
+                            if (nickname.equals("Anonymous")){
+                                out.println("Can not send a message as Anonymous, please register a nickname first!");
+                                break;
                             }
+
+                            if (receiver.equals("Anonymous")) {
+                                out.println("Can not send a message to Anonymous");
+                                break;
+                            }
+                            out.println("[You to " + receiver + "]" + message);
+                            //send the message
+                            sendMessageTo(receiver, nickname, message);
+                            break;
+
+                        case "/logout":
+                            //logout
+                            System.out.println("Client disconnected");
+                            loggedin = false;
+
+                            //tell the client he is logged of
+                            out.println("Logging out!");
+                            break;
                     }
+                    out.flush();
                 }
+
+                //if we are here it means the client logged of
+                logout(this);
 
 
             } catch (IOException e) {
@@ -109,6 +132,8 @@ public class Server {
             return nickname;
         }
 
+
+
     }
 
     /**
@@ -125,12 +150,13 @@ public class Server {
 
     /**
      * Method that checks if a nickname is unique
+     *
      * @param name the name that gets checked
      * @return true if unique else false
      */
-    private boolean nameUnique(String name){
-        for (ClientThread clientThread: loggedInClients){
-            if (clientThread.getNickname().equals(name)){
+    private boolean nameUnique(String name) {
+        for (ClientThread clientThread : loggedInClients) {
+            if (clientThread.getNickname().equals(name)) {
                 return false;
             }
         }
@@ -139,16 +165,37 @@ public class Server {
 
     /**
      * Message that sends a message to a specifick user
+     *
      * @param receiver nickname of the person the message should be sent
-     * @param sender nickname of the sender
-     * @param message the message to send
+     * @param sender   nickname of the sender
+     * @param message  the message to send
      */
-    private void sendMessageTo(String receiver, String sender, String message){
-        for (ClientThread clientThread: loggedInClients){
-            if (clientThread.getNickname().equals(receiver)){
+    private void sendMessageTo(String receiver, String sender, String message) {
+        for (ClientThread clientThread : loggedInClients) {
+            if (clientThread.getNickname().equals(receiver)) {
                 clientThread.sendMessage("[Message from " + sender + "]" + message);
             }
         }
+    }
+
+    /**
+     * Removes a client from the logged in clients
+     * @param clientToBeLoggedOut the client thats logging of
+     */
+    public void logout(ClientThread clientToBeLoggedOut){
+        int i = 0;
+        int toRemove = -1;
+        for (ClientThread clientThread: loggedInClients){
+
+            //store what to remove
+            if (clientThread == clientToBeLoggedOut){
+                toRemove = i;
+            }
+            i++;
+        }
+
+        //remove it
+        loggedInClients.remove(toRemove);
     }
 
     public static void main(String[] args) {
