@@ -1,5 +1,8 @@
 import java.io.*;
+import java.net.ConnectException;
 import java.net.Socket;
+import java.net.SocketException;
+import java.util.ArrayList;
 import java.util.Scanner;
 
 /**
@@ -11,6 +14,7 @@ public class Client {
     private Socket socket;
     private InputThread inputThread;
     private InputStream inputStream;
+    private volatile Scanner scanner;
 
     boolean loggedIn = true;
 
@@ -19,7 +23,7 @@ public class Client {
             //Maak verbinding met de server
             socket = new Socket(SERVER_ADRESS, SERVER_PORT);
 
-            System.out.println("Client online!");
+            System.out.println("Client connected to server!");
 
             inputStream = socket.getInputStream();
 
@@ -33,12 +37,19 @@ public class Client {
                 PrintWriter writer = new PrintWriter(out);
 
                 //Ask for input
-                Scanner scanner = new Scanner(System.in);
+                scanner = new Scanner(System.in);
                 String inputLine = scanner.nextLine();
+
+                //if we are logged of than quit
+                if (!loggedIn) {
+                    break;
+                }
 
                 //default value
                 String command = "-1";
                 String line = "";
+
+                //check for valid input
                 if (!inputLine.equals("")) {
                     if (inputLine.charAt(0) == '/') {
                         if (inputLine.indexOf(" ") >= 0) {
@@ -62,9 +73,9 @@ public class Client {
                         break;
                     case "/pm":
                         //check if a message has been givven
-                        if (line.indexOf("") >= 0){
+                        if (line.indexOf("") < 0) {
                             System.out.println("Please provide a message");
-                        }else {
+                        } else {
                             writer.println("/pm " + line);
                         }
                         break;
@@ -79,16 +90,24 @@ public class Client {
                 writer.flush();
             }
 
+            //Always finish things nicely
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println("\n--------------------------------------------");
+            System.out.println("Connection has been broken by server");
+            System.out.println("Error Message: " + e.getMessage());
+            System.out.println("--------------------------------------------\n");
+
+        } finally {
+            loggedIn = false;
         }
     }
 
     private class InputThread extends Thread {
 
         public void run() {
-            while (loggedIn) {
-                try {
+            try {
+                while (loggedIn) {
+
                     // Blokkeer de thread tot er een volledige regel binnenkomt
                     BufferedReader reader = new BufferedReader(
                             new InputStreamReader(inputStream));
@@ -99,9 +118,19 @@ public class Client {
                     //print the line
                     System.out.println(nextLine);
 
-                } catch (IOException e) {
-                    e.printStackTrace();
+
                 }
+
+                //Always finish things nicely
+            } catch (IOException e) {
+                System.out.println("\n--------------------------------------------");
+                System.out.println("Connection has been broken by server");
+                System.out.println("Error Message: " + e.getMessage());
+                System.out.println("--------------------------------------------\n");
+
+            } finally {
+                System.out.println("Enter anything to close client");
+                loggedIn = false;
             }
         }
     }

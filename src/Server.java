@@ -48,8 +48,8 @@ public class Server {
 
         public void run() {
             try {
-                boolean loggedin = true;
-                while (loggedin) {
+                boolean loggedIn = true;
+                while (loggedIn) {
                     //make the in and out writers
                     out =
                             new PrintWriter(socket.getOutputStream(), true);
@@ -75,8 +75,18 @@ public class Server {
                             break;
                         //change nickname
                         case "/newNickname":
-                            nickname = line;
-                            out.println("Nickname changed!");
+                            if (line.equals("")){
+                                out.println("Name cant be empty!");
+                                break;
+                            }
+
+                            if (nameUnique(line)) {
+                                nickname = line;
+                                out.println("Nickname changed!");
+
+                            } else {
+                                out.println("Nickname already taken!");
+                            }
                             break;
                         case "/pm":
                             String receiver = line.substring(0, line.indexOf(" "));
@@ -100,7 +110,7 @@ public class Server {
                         case "/logout":
                             //logout
                             System.out.println("Client disconnected");
-                            loggedin = false;
+                            loggedIn = false;
 
                             //tell the client he is logged of
                             out.println("Logging out!");
@@ -109,12 +119,16 @@ public class Server {
                     out.flush();
                 }
 
+                //if connection breaks show info
+            } catch (IOException e) {
+                System.out.println("\n------------------------------");
+                System.out.println("Lost connection to client!");
+                System.out.println("Nickname: " + nickname + " Id: " + getId());
+                System.out.println("------------------------------\n");
+
+            } finally {
                 //if we are here it means the client logged of
                 logout(this);
-
-
-            } catch (IOException e) {
-                e.printStackTrace();
             }
         }
 
@@ -142,7 +156,7 @@ public class Server {
      * @param message the message send
      */
     private void broadcastMessage(String message) {
-        System.out.println("BROADCAST: [" + message + "]");
+        System.out.println(message);
         for (ClientThread clientThread : loggedInClients) {
             clientThread.sendMessage(message);
         }
